@@ -43,6 +43,7 @@ const (
 	WrongFormattedArg
 	UnexpectedArg
 	UnexpectedValue
+	MissingRequiredArgument
 	EmptyValue
 )
 
@@ -107,6 +108,11 @@ func (f *flags) parse() error {
 
 	}
 
+	if len(f.url) < 1 {
+		_error = parseError{err: MissingRequiredArgument}
+		goto error
+	}
+
 	return nil
 
 error:
@@ -121,6 +127,8 @@ error:
 		return errors.New(fmt.Sprintf("Unexpected value for argument %q: %q", *_error.arg, *_error.value))
 	case EmptyValue:
 		return errors.New(fmt.Sprintf("Empty value for argument: %q", *_error.arg))
+	case MissingRequiredArgument:
+		return errors.New(fmt.Sprintf("Required argument is missing"))
 	default:
 		return errors.New("UnknownError")
 	}
