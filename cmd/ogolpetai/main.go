@@ -53,7 +53,7 @@ type parseError struct {
 	value *string
 }
 
-func parse(f *flags) error {
+func parseLegacy(f *flags) error {
 	var _error parseError
 	args := os.Args[1:]
 	if len(args) < 1 {
@@ -136,7 +136,7 @@ error:
 
 func main() {
 	var f flags
-	if err := parse(&f); err != nil {
+	if err := parseLegacy(&f); err != nil {
 		fmt.Println(usage())
 		log.Fatal(err)
 		// os.Exit(0)
