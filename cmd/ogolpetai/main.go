@@ -169,16 +169,11 @@ func (f *flags) intVar(p *int) parseFunc {
 }
 
 func parse(f *flags) (err error) {
-	var (
-		url = flag.String("url", "", "HTTP server `URL` to make requests (required)")
-		n   = flag.Int("n", f.n, "Number of requests to make")
-		c   = flag.Int("c", f.c, "Concurrency level")
-	)
+	flag.StringVar(&f.url, "url", "", "HTTP server `URL` to make requests (required)")
+	flag.IntVar(&f.n, "n", f.n, "Number of requests to make")
+	flag.IntVar(&f.c, "c", f.c, "Concurrency level")
 
 	flag.Parse()
-	f.c = *c
-	f.n = *n
-	f.url = *url
 
 	return nil
 }
