@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 )
@@ -134,9 +135,56 @@ error:
 	}
 }
 
+type parseFunc func(string) error
+
+func parse(f *flags) (err error) {
+
+	parsers := map[string]parseFunc{
+		"url": f.urlVar(&f.url),
+		"n":   f.intVar(&f.n),
+		"c":   f.intVar(&f.c),
+	}
+
+	for _, arg := range os.Args[1:] {
+		key, value, ok := strings.Cut(arg, "=")
+		if !ok {
+			continue
+		}
+		parseFn, ok := parsers[strings.TrimPrefix(key, "-")]
+		if !ok {
+			continue
+		}
+
+		if err = parseFn(value); err != nil {
+			err = fmt.Errorf("invalid value %q for flag %s: %w", value, key, err)
+			break
+		}
+	}
+
+	return err
+}
+
+func (f *flags) urlVar(p *string) parseFunc {
+	return func(s string) error {
+		_, err := url.Parse(s)
+		*p = s
+		return err
+	}
+}
+
+func (f *flags) intVar(p *int) parseFunc {
+	return func(s string) (err error) {
+		*p, err = strconv.Atoi(s)
+		return err
+	}
+}
+
 func main() {
-	var f flags
-	if err := parseLegacy(&f); err != nil {
+	f := &flags{
+		n: 100,
+		c: runtime.NumCPU(),
+	}
+	if err := parse(f); err != nil {
 		fmt.Println(usage())
 		log.Fatal(err)
 		// os.Exit(0)
