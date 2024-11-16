@@ -174,7 +174,19 @@ func parse(f *flags) (err error) {
 	flag.IntVar(&f.c, "c", f.c, "Concurrency level")
 
 	flag.Parse()
+	if err = f.validate(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		flag.Usage()
+		return err
+	}
 
+	return nil
+}
+
+func (f *flags) validate() error {
+	if strings.TrimSpace(f.url) == "" {
+		return errors.New("-url Required")
+	}
 	return nil
 }
 
