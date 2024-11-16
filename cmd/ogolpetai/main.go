@@ -187,6 +187,9 @@ func (f *flags) validate() error {
 	if strings.TrimSpace(f.url) == "" {
 		return errors.New("-url Required")
 	}
+	if f.n < f.c {
+		return fmt.Errorf("-c=%d should be less or equal to -n=%d", f.c, f.n)
+	}
 	return nil
 }
 
