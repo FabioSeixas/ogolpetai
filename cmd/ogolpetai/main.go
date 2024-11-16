@@ -137,7 +137,7 @@ error:
 
 type parseFunc func(string) error
 
-func parse(f *flags) (err error) {
+func parseLegacyV2(f *flags) (err error) {
 
 	parsers := map[string]parseFunc{
 		"url": f.urlVar(&f.url),
@@ -184,7 +184,7 @@ func main() {
 		n: 100,
 		c: runtime.NumCPU(),
 	}
-	if err := parse(f); err != nil {
+	if err := parseLegacyV2(f); err != nil {
 		fmt.Println(usage())
 		log.Fatal(err)
 		// os.Exit(0)
