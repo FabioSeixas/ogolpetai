@@ -184,13 +184,30 @@ func parse(f *flags) (err error) {
 }
 
 func (f *flags) validate() error {
-	if strings.TrimSpace(f.url) == "" {
-		return errors.New("-url Required")
+	if err := validateURL(f.url); err != nil {
+		return err
 	}
 	if f.n < f.c {
 		return fmt.Errorf("-c=%d should be less or equal to -n=%d", f.c, f.n)
 	}
 	return nil
+}
+
+func validateURL(s string) error {
+	u, err := url.Parse(s)
+
+	switch {
+	case strings.TrimSpace(s) == "":
+		err = errors.New("'url' is Required")
+	case err != nil:
+		err = errors.New("parse error")
+	case u.Scheme != "http":
+		err = errors.New("only http protocol is supported")
+	case u.Host == "":
+		err = errors.New("Missing Host")
+	}
+
+	return err
 }
 
 func main() {
