@@ -2,8 +2,8 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"runtime"
@@ -17,20 +17,9 @@ const (
   │ │  │ ┬│ ││  ├─┘├┤    │ ├─┤  ├─┤│
   └─┘  └─┘└─┘┴─┘┴  └─┘   ┴ ┴ ┴  ┴ ┴┴
 	  `
-
-	usageText = `
-	  Usage:
-
-	  -url
-	  HTTP server URL to make requests (required)
-	  -n
-	  Number of requests to make
-	  -c
-	  Concurrency level`
 )
 
 func banner() string { return bannerText[1:] }
-func usage() string  { return usageText[1:] }
 
 type flags struct {
 	url  string
@@ -179,15 +168,28 @@ func (f *flags) intVar(p *int) parseFunc {
 	}
 }
 
+func parse(f *flags) (err error) {
+	var (
+		url = flag.String("url", "", "HTTP server `URL` to make requests (required)")
+		n   = flag.Int("n", f.n, "Number of requests to make")
+		c   = flag.Int("c", f.c, "Concurrency level")
+	)
+
+	flag.Parse()
+	f.c = *c
+	f.n = *n
+	f.url = *url
+
+	return nil
+}
+
 func main() {
 	f := &flags{
 		n: 100,
 		c: runtime.NumCPU(),
 	}
-	if err := parseLegacyV2(f); err != nil {
-		fmt.Println(usage())
-		log.Fatal(err)
-		// os.Exit(0)
+	if err := parse(f); err != nil {
+		os.Exit(1)
 	}
 
 	fmt.Println(banner())
