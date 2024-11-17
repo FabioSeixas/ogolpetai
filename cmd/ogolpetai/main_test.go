@@ -24,19 +24,23 @@ func TestRun(t *testing.T) {
 	happy := map[string]struct{ input, expected string }{
 		"should work if only url param is present": {
 			input:    "http://abc",
-			expected: fmt.Sprintf(`Making 100 requests to "http://abc" with concurrency level %d`, runtime.NumCPU()),
+			expected: fmt.Sprintf(`Making 100 requests to "http://abc" with concurrency level %d (Timeout=10s)`, runtime.NumCPU()),
 		},
 		"should work if all params are present": {
 			input:    "-c=10 -n=50 http://abc",
-			expected: `Making 50 requests to "http://abc" with concurrency level 10`,
+			expected: `Making 50 requests to "http://abc" with concurrency level 10 (Timeout=10s)`,
 		},
-		"should work if url and -c param are present": {
+		"should work if url and -c params are present": {
 			input:    "-c=10 http://abc",
-			expected: `Making 100 requests to "http://abc" with concurrency level 10`,
+			expected: `Making 100 requests to "http://abc" with concurrency level 10 (Timeout=10s)`,
 		},
-		"should work if url and -n param are present": {
+		"should work if url and -n params are present": {
 			input:    "-n=50 http://abc",
-			expected: fmt.Sprintf(`Making 50 requests to "http://abc" with concurrency level %d`, runtime.NumCPU()),
+			expected: fmt.Sprintf(`Making 50 requests to "http://abc" with concurrency level %d (Timeout=10s)`, runtime.NumCPU()),
+		},
+		"should work if url and -t params are present": {
+			input:    "-t=5s http://abc",
+			expected: fmt.Sprintf(`Making 100 requests to "http://abc" with concurrency level %d (Timeout=5s)`, runtime.NumCPU()),
 		},
 	}
 

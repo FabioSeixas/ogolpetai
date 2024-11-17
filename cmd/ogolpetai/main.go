@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -28,8 +29,9 @@ Options: `
 func banner() string { return bannerText[1:] }
 
 type flags struct {
-	url  string
-	n, c int
+	url     string
+	n, c    int
+	timeout time.Duration
 }
 
 type ParseError int
@@ -203,6 +205,7 @@ func (f *flags) parse(s *flag.FlagSet, args []string) (err error) {
 		s.PrintDefaults()
 	}
 
+	s.DurationVar(&f.timeout, "t", time.Duration(f.timeout), "Number of requests to make")
 	s.Var(toNumber(&f.n), "n", "Number of requests to make")
 	s.Var(toNumber(&f.c), "c", "Concurrency level")
 
@@ -217,6 +220,8 @@ func (f *flags) parse(s *flag.FlagSet, args []string) (err error) {
 		s.Usage()
 		return err
 	}
+
+	// fmt.Printf("%#v", f)
 
 	return nil
 }
@@ -250,15 +255,24 @@ func validateURL(s string) error {
 
 func run(s *flag.FlagSet, args []string, out io.Writer) error {
 	f := &flags{
-		n: 100,
-		c: runtime.NumCPU(),
+		n:       100,
+		c:       runtime.NumCPU(),
+		timeout: time.Duration(10) * time.Second,
 	}
+
 	if err := f.parse(s, args); err != nil {
 		return err
 	}
 
 	fmt.Fprintln(out, banner())
-	fmt.Fprintf(out, "Making %d requests to %q with concurrency level %d\n", f.n, f.url, f.c)
+	fmt.Fprintf(
+		out,
+		"Making %d requests to %q with concurrency level %d (Timeout=%ds)\n",
+		f.n,
+		f.url,
+		f.c,
+		int(f.timeout.Seconds()),
+	)
 
 	return nil
 }
