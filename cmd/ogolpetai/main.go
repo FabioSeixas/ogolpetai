@@ -32,6 +32,7 @@ type flags struct {
 	url     string
 	n, c    int
 	timeout time.Duration
+	method  string
 }
 
 type ParseError int
@@ -199,6 +200,28 @@ func (n *number) String() string {
 	return strconv.Itoa(int(*n))
 }
 
+type httpMethod string
+
+func toHttpMethod(p *string) *httpMethod {
+	return (*httpMethod)(p)
+}
+
+func (m *httpMethod) Set(s string) (err error) {
+
+	switch s {
+	case "GET", "POST", "PUT":
+		*m = httpMethod(s)
+	default:
+		err = errors.New("Invalid http method")
+	}
+
+	return err
+}
+
+func (m *httpMethod) String() string {
+	return string(*m)
+}
+
 func (f *flags) parse(s *flag.FlagSet, args []string) (err error) {
 	s.Usage = func() {
 		fmt.Fprintln(s.Output(), usageText)
@@ -208,6 +231,7 @@ func (f *flags) parse(s *flag.FlagSet, args []string) (err error) {
 	s.DurationVar(&f.timeout, "t", time.Duration(f.timeout), "Number of requests to make")
 	s.Var(toNumber(&f.n), "n", "Number of requests to make")
 	s.Var(toNumber(&f.c), "c", "Concurrency level")
+	s.Var(toHttpMethod(&f.method), "m", "Http method")
 
 	if err = s.Parse(args); err != nil {
 		return err
@@ -220,8 +244,6 @@ func (f *flags) parse(s *flag.FlagSet, args []string) (err error) {
 		s.Usage()
 		return err
 	}
-
-	// fmt.Printf("%#v", f)
 
 	return nil
 }
@@ -258,6 +280,7 @@ func run(s *flag.FlagSet, args []string, out io.Writer) error {
 		n:       100,
 		c:       runtime.NumCPU(),
 		timeout: time.Duration(10) * time.Second,
+		method:  "GET",
 	}
 
 	if err := f.parse(s, args); err != nil {
@@ -267,8 +290,9 @@ func run(s *flag.FlagSet, args []string, out io.Writer) error {
 	fmt.Fprintln(out, banner())
 	fmt.Fprintf(
 		out,
-		"Making %d requests to %q with concurrency level %d (Timeout=%ds)\n",
+		"Making %d %s requests to %q with concurrency level %d (Timeout=%ds)\n",
 		f.n,
+		f.method,
 		f.url,
 		f.c,
 		int(f.timeout.Seconds()),
