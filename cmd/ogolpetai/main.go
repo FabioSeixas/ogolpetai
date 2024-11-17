@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"runtime"
@@ -196,23 +197,24 @@ func (n *number) String() string {
 	return strconv.Itoa(int(*n))
 }
 
-func parse(f *flags) (err error) {
-	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, usageText)
-		flag.PrintDefaults()
+func (f *flags) parse(s *flag.FlagSet, args []string) (err error) {
+	s.Usage = func() {
+		fmt.Fprintln(s.Output(), usageText)
+		s.PrintDefaults()
 	}
 
-	// flag.StringVar(&f.url, "url", "", "HTTP server `URL` to make requests (required)")
-	flag.Var(toNumber(&f.n), "n", "Number of requests to make")
-	flag.Var(toNumber(&f.c), "c", "Concurrency level")
+	s.Var(toNumber(&f.n), "n", "Number of requests to make")
+	s.Var(toNumber(&f.c), "c", "Concurrency level")
 
-	flag.Parse()
+	if err = s.Parse(args); err != nil {
+		return err
+	}
 
-	f.url = flag.Arg(0)
+	f.url = s.Arg(0)
 
 	if err = f.validate(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		flag.Usage()
+		fmt.Fprintln(s.Output(), err)
+		s.Usage()
 		return err
 	}
 
@@ -246,15 +248,23 @@ func validateURL(s string) error {
 	return err
 }
 
-func main() {
+func run(s *flag.FlagSet, args []string, out io.Writer) error {
 	f := &flags{
 		n: 100,
 		c: runtime.NumCPU(),
 	}
-	if err := parse(f); err != nil {
-		os.Exit(1)
+	if err := f.parse(s, args); err != nil {
+		return err
 	}
 
-	fmt.Println(banner())
-	fmt.Printf("Making %d requests to %q with concurrency level %d\n", f.n, f.url, f.c)
+	fmt.Fprintln(out, banner())
+	fmt.Fprintf(out, "Making %d requests to %q with concurrency level %d\n", f.n, f.url, f.c)
+
+	return nil
+}
+
+func main() {
+	if err := run(flag.CommandLine, os.Args[1:], os.Stdout); err != nil {
+		os.Exit(1)
+	}
 }
