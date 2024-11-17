@@ -17,6 +17,11 @@ const (
   │ │  │ ┬│ ││  ├─┘├┤    │ ├─┤  ├─┤│
   └─┘  └─┘└─┘┴─┘┴  └─┘   ┴ ┴ ┴  ┴ ┴┴
 	  `
+
+	usageText = `
+Usage:
+  ogolpetai [options] url
+Options: `
 )
 
 func banner() string { return bannerText[1:] }
@@ -192,11 +197,19 @@ func (n *number) String() string {
 }
 
 func parse(f *flags) (err error) {
-	flag.StringVar(&f.url, "url", "", "HTTP server `URL` to make requests (required)")
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, usageText)
+		flag.PrintDefaults()
+	}
+
+	// flag.StringVar(&f.url, "url", "", "HTTP server `URL` to make requests (required)")
 	flag.Var(toNumber(&f.n), "n", "Number of requests to make")
 	flag.Var(toNumber(&f.c), "c", "Concurrency level")
 
 	flag.Parse()
+
+	f.url = flag.Arg(0)
+
 	if err = f.validate(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		flag.Usage()
