@@ -168,10 +168,33 @@ func (f *flags) intVar(p *int) parseFunc {
 	}
 }
 
+type number int
+
+func toNumber(p *int) *number {
+	return (*number)(p)
+}
+
+func (n *number) Set(s string) error {
+	v, err := strconv.ParseInt(s, 0, strconv.IntSize)
+	if err != nil {
+		err = errors.New("Parse error")
+	} else if v <= 0 {
+		err = errors.New("Should be positive")
+	}
+
+	*n = number(v)
+
+	return err
+}
+
+func (n *number) String() string {
+	return strconv.Itoa(int(*n))
+}
+
 func parse(f *flags) (err error) {
 	flag.StringVar(&f.url, "url", "", "HTTP server `URL` to make requests (required)")
-	flag.IntVar(&f.n, "n", f.n, "Number of requests to make")
-	flag.IntVar(&f.c, "c", f.c, "Concurrency level")
+	flag.Var(toNumber(&f.n), "n", "Number of requests to make")
+	flag.Var(toNumber(&f.c), "c", "Concurrency level")
 
 	flag.Parse()
 	if err = f.validate(); err != nil {
