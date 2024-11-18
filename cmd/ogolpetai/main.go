@@ -33,6 +33,7 @@ type flags struct {
 	n, c    int
 	timeout time.Duration
 	method  string
+	headers []string
 }
 
 type ParseError int
@@ -222,6 +223,28 @@ func (m *httpMethod) String() string {
 	return string(*m)
 }
 
+type httpHeaders []string
+
+func toHttpHeaders(p *[]string) *httpHeaders {
+	return (*httpHeaders)(p)
+}
+
+func (h *httpHeaders) Set(s string) (err error) {
+
+	_, _, ok := strings.Cut(s, ":")
+	if !ok {
+		err = errors.New("Wrong formatted header")
+	}
+
+	*h = append(*h, s)
+
+	return err
+}
+
+func (h *httpHeaders) String() string {
+	return strings.Join(*h, ", ")
+}
+
 func (f *flags) parse(s *flag.FlagSet, args []string) (err error) {
 	s.Usage = func() {
 		fmt.Fprintln(s.Output(), usageText)
@@ -232,12 +255,15 @@ func (f *flags) parse(s *flag.FlagSet, args []string) (err error) {
 	s.Var(toNumber(&f.n), "n", "Number of requests to make")
 	s.Var(toNumber(&f.c), "c", "Concurrency level")
 	s.Var(toHttpMethod(&f.method), "m", "Http method")
+	s.Var(toHttpHeaders(&f.headers), "H", "Http header")
 
 	if err = s.Parse(args); err != nil {
 		return err
 	}
 
 	f.url = s.Arg(0)
+
+	// fmt.Printf("%#v", f)
 
 	if err = f.validate(); err != nil {
 		fmt.Fprintln(s.Output(), err)
@@ -281,6 +307,7 @@ func run(s *flag.FlagSet, args []string, out io.Writer) error {
 		c:       runtime.NumCPU(),
 		timeout: time.Duration(10) * time.Second,
 		method:  "GET",
+		headers: []string{},
 	}
 
 	if err := f.parse(s, args); err != nil {
@@ -290,12 +317,13 @@ func run(s *flag.FlagSet, args []string, out io.Writer) error {
 	fmt.Fprintln(out, banner())
 	fmt.Fprintf(
 		out,
-		"Making %d %s requests to %q with concurrency level %d (Timeout=%ds)\n",
+		"Making %d %s requests to %q with concurrency level %d (Timeout=%ds)\nHeaders: %s\n",
 		f.n,
 		f.method,
 		f.url,
 		f.c,
 		int(f.timeout.Seconds()),
+		strings.Join(f.headers, ", "),
 	)
 
 	return nil

@@ -11,17 +11,24 @@ import (
 
 type testEnv struct {
 	args           string
+	headerArgs     []string
 	stdout, stderr bytes.Buffer
 }
 
 func (e *testEnv) run() error {
 	s := flag.NewFlagSet("ogolpetai_test", flag.ContinueOnError)
 	s.SetOutput(&e.stderr)
-	return run(s, strings.Fields(e.args), &e.stdout)
+
+	_args := append(e.headerArgs, strings.Fields(e.args)...)
+
+	return run(s, _args, &e.stdout)
 }
 
 func TestRun(t *testing.T) {
-	happy := map[string]struct{ input, expected string }{
+	happy := map[string]struct {
+		input, expected string
+		headers         []string
+	}{
 		"should work if only url param is present": {
 			input:    "http://abc",
 			expected: fmt.Sprintf(`Making 100 GET requests to "http://abc" with concurrency level %d (Timeout=10s)`, runtime.NumCPU()),
@@ -46,13 +53,23 @@ func TestRun(t *testing.T) {
 			input:    "-m=POST http://abc",
 			expected: fmt.Sprintf(`Making 100 POST requests to "http://abc" with concurrency level %d (Timeout=10s)`, runtime.NumCPU()),
 		},
+		"should work if url and -H params are present": {
+			input:    "http://abc",
+			headers:  []string{"-H='Content-Type: application/json'"},
+			expected: `Headers: 'Content-Type: application/json'`,
+		},
+		"should work for more than one -H param": {
+			input:    "http://abc",
+			headers:  []string{"-H='Content-Type: application/json'", "-H='User-Agent: ogolpetai'"},
+			expected: `Headers: 'Content-Type: application/json', 'User-Agent: ogolpetai'`,
+		},
 	}
 
 	for testName, test := range happy {
 
 		t.Run(testName, func(t *testing.T) {
 
-			env := &testEnv{args: test.input}
+			env := &testEnv{args: test.input, headerArgs: test.headers}
 
 			if err := env.run(); err != nil {
 				t.Fatalf("\n[%s] got error: %q", testName, err)
@@ -78,6 +95,7 @@ func TestRun(t *testing.T) {
 		"should stop if -c is greater than -n":  "-c=2 -n=1 http://foo",
 		"should stop if -m is invalid":          "-m=FETCH http://foo",
 		"should stop if -t is missing unit":     "-t=2 http://foo",
+		"should stop if -H is invalid":          "-H=abc' http://foo",
 	}
 
 	for testName, input := range sad {
