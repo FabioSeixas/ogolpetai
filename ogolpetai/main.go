@@ -28,7 +28,7 @@ func (r *Result) Merge(o *Result) {
 		r.Fastest = o.Duration
 	}
 
-	if r.Slowest > o.Duration {
+	if r.Slowest < o.Duration {
 		r.Slowest = o.Duration
 	}
 

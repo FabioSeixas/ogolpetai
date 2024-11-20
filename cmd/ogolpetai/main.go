@@ -329,24 +329,14 @@ func run(s *flag.FlagSet, args []string, out io.Writer) error {
 		strings.Join(f.headers, ", "),
 	)
 
-	var sum gp.Result
+	request, err := http.NewRequest(f.method, f.url, http.NoBody)
 
-	sum.Merge(&gp.Result{
-		Bytes:    1000,
-		Status:   http.StatusOK,
-		Duration: time.Second,
-	})
-	sum.Merge(&gp.Result{
-		Bytes:    1000,
-		Status:   http.StatusOK,
-		Duration: time.Second,
-	})
-	sum.Merge(&gp.Result{
-		Status:   http.StatusTeapot,
-		Duration: 2 * time.Second,
-	})
+	if err != nil {
+		return err
+	}
 
-	sum.Finalize(2 * time.Second)
+	var c gp.Client
+	sum := c.Do(request, f.n)
 	sum.Fprint(out)
 
 	return nil
