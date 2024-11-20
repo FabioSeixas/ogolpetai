@@ -5,12 +5,15 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
+
+	gp "github.com/FabioSeixas/ogolpetai/ogolpetai"
 )
 
 const (
@@ -325,6 +328,26 @@ func run(s *flag.FlagSet, args []string, out io.Writer) error {
 		int(f.timeout.Seconds()),
 		strings.Join(f.headers, ", "),
 	)
+
+	var sum gp.Result
+
+	sum.Merge(&gp.Result{
+		Bytes:    1000,
+		Status:   http.StatusOK,
+		Duration: time.Second,
+	})
+	sum.Merge(&gp.Result{
+		Bytes:    1000,
+		Status:   http.StatusOK,
+		Duration: time.Second,
+	})
+	sum.Merge(&gp.Result{
+		Status:   http.StatusTeapot,
+		Duration: 2 * time.Second,
+	})
+
+	sum.Finalize(2 * time.Second)
+	sum.Fprint(out)
 
 	return nil
 }
