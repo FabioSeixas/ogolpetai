@@ -1,11 +1,14 @@
 package ogolpetai
 
 import (
+	"context"
 	"net/http"
 	"time"
 )
 
 type Client struct {
+	C   int // Concurrency level
+	RPS int // RPS throttles the request per second
 }
 
 func (c *Client) Do(r *http.Request, n int) *Result {
@@ -15,9 +18,17 @@ func (c *Client) Do(r *http.Request, n int) *Result {
 }
 
 func (c *Client) do(r *http.Request, n int) *Result {
+	p := produce(n, func() req {
+		return r.Clone(context.TODO())
+	})
+
+	if c.RPS > 0 {
+		p = throttle(p, time.Second/time.Duration(c.RPS*c.C))
+	}
+
 	var sum Result
-	for ; n > 0; n-- {
-		sum.Merge(Send(r))
+	for result := range split(p, c.C, Send) {
+		sum.Merge(result)
 	}
 	return &sum
 }

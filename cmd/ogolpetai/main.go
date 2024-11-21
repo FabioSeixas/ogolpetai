@@ -335,7 +335,7 @@ func run(s *flag.FlagSet, args []string, out io.Writer) error {
 		return err
 	}
 
-	var c gp.Client
+	c := gp.Client{C: f.c}
 	sum := c.Do(request, f.n)
 	sum.Fprint(out)
 
