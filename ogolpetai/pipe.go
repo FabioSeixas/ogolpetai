@@ -63,7 +63,7 @@ func Split(in <-chan req, out chan<- *Result, c int, fn SendFunc) {
 	wg.Wait()
 }
 
-func split(in <-chan req, c int, fn SendFunc) chan<- *Result {
+func split(in <-chan req, c int, fn SendFunc) <-chan *Result {
 
 	out := make(chan *Result)
 
