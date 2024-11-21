@@ -1,6 +1,6 @@
 # O golpe ta ai
 
-A cmd tool for server stress tests (atually, for me to learn Go)
+A cmd tool for server stress tests (it's actually a project to learn Go)
 
 
 
