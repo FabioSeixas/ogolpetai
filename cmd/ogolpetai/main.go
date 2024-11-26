@@ -32,11 +32,11 @@ Options: `
 func banner() string { return bannerText[1:] }
 
 type flags struct {
-	url     string
-	n, c    int
-	timeout time.Duration
-	method  string
-	headers []string
+	url       string
+	n, c, rps int
+	timeout   time.Duration
+	method    string
+	headers   []string
 }
 
 type ParseError int
@@ -254,9 +254,10 @@ func (f *flags) parse(s *flag.FlagSet, args []string) (err error) {
 		s.PrintDefaults()
 	}
 
-	s.DurationVar(&f.timeout, "t", time.Duration(f.timeout), "Number of requests to make")
+	// s.DurationVar(&f.timeout, "t", time.Duration(f.timeout), "Number of requests to make")
 	s.Var(toNumber(&f.n), "n", "Number of requests to make")
 	s.Var(toNumber(&f.c), "c", "Concurrency level")
+	s.Var(toNumber(&f.rps), "t", "Throttle requests per second")
 	s.Var(toHttpMethod(&f.method), "m", "Http method")
 	s.Var(toHttpHeaders(&f.headers), "H", "Http header")
 
@@ -308,6 +309,7 @@ func run(s *flag.FlagSet, args []string, out io.Writer) error {
 	f := &flags{
 		n:       100,
 		c:       runtime.NumCPU(),
+		rps:     0,
 		timeout: time.Duration(10) * time.Second,
 		method:  "GET",
 		headers: []string{},
@@ -320,14 +322,22 @@ func run(s *flag.FlagSet, args []string, out io.Writer) error {
 	fmt.Fprintln(out, banner())
 	fmt.Fprintf(
 		out,
-		"Making %d %s requests to %q with concurrency level %d (Timeout=%ds)\nHeaders: %s\n",
+		"Making %d %s requests to %q with concurrency level %d (Timeout=%ds)\n",
 		f.n,
 		f.method,
 		f.url,
 		f.c,
 		int(f.timeout.Seconds()),
-		strings.Join(f.headers, ", "),
 	)
+
+	if len(f.headers) > 0 {
+		fmt.Fprintf(out, "Headers: %s", strings.Join(f.headers, ", "))
+
+	}
+
+	if f.rps > 0 {
+		fmt.Fprintf(out, "(RPS: %d)\n", f.rps)
+	}
 
 	request, err := http.NewRequest(f.method, f.url, http.NoBody)
 
@@ -335,7 +345,7 @@ func run(s *flag.FlagSet, args []string, out io.Writer) error {
 		return err
 	}
 
-	c := gp.Client{C: f.c}
+	c := gp.Client{C: f.c, RPS: f.rps}
 	sum := c.Do(request, f.n)
 	sum.Fprint(out)
 
