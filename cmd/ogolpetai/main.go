@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -345,15 +346,23 @@ func run(s *flag.FlagSet, args []string, out io.Writer) error {
 		return err
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), f.timeout)
+	defer cancel()
+
 	c := gp.Client{C: f.c, RPS: f.rps}
-	sum := c.Do(request, f.n)
+	sum := c.Do(ctx, request, f.n)
 	sum.Fprint(out)
+
+	if err = ctx.Err(); errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Errorf("\nTimed out in %s\n", f.timeout)
+	}
 
 	return nil
 }
 
 func main() {
 	if err := run(flag.CommandLine, os.Args[1:], os.Stdout); err != nil {
+		fmt.Fprintf(os.Stderr, "%s", err)
 		os.Exit(1)
 	}
 }

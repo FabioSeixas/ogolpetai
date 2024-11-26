@@ -1,6 +1,7 @@
 package ogolpetai
 
 import (
+	"context"
 	"net/http"
 	"sync"
 	"time"
@@ -8,18 +9,23 @@ import (
 
 type req = *http.Request
 
-func Produce(out chan<- req, n int, fn func() req) {
+func Produce(ctx context.Context, out chan<- req, n int, fn func() req) {
 	for ; n > 0; n-- {
-		out <- fn()
+		select {
+		case <-ctx.Done():
+			return
+		case out <- fn():
+		}
+
 	}
 }
 
-func produce(n int, fn func() req) <-chan req {
+func produce(ctx context.Context, n int, fn func() req) <-chan req {
 	out := make(chan req)
 
 	go func() {
 		defer close(out)
-		Produce(out, n, fn)
+		Produce(ctx, out, n, fn)
 	}()
 
 	return out
