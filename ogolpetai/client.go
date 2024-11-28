@@ -30,6 +30,9 @@ func (c *Client) do(ctx context.Context, r *http.Request, n int) *Result {
 		sum    Result
 		client = c.client()
 	)
+
+	defer client.CloseIdleConnections()
+
 	for result := range split(p, c.C, c.send(client)) {
 		sum.Merge(result)
 	}
