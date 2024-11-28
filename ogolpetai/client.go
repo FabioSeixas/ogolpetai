@@ -7,8 +7,9 @@ import (
 )
 
 type Client struct {
-	C   int // Concurrency level
-	RPS int // RPS throttles the request per second
+	C       int           // Concurrency level
+	RPS     int           // RPS throttles the request per second
+	Timeout time.Duration // Timeout per request
 }
 
 func (c *Client) Do(ctx context.Context, r *http.Request, n int) *Result {
@@ -47,6 +48,7 @@ func (c *Client) send(client *http.Client) SendFunc {
 
 func (c *Client) client() *http.Client {
 	return &http.Client{
+		Timeout: c.Timeout,
 		Transport: &http.Transport{
 			MaxIdleConnsPerHost: c.C,
 		},

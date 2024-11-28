@@ -352,7 +352,7 @@ func run(s *flag.FlagSet, args []string, out io.Writer) error {
 	defer cancel()
 	defer stop()
 
-	c := gp.Client{C: f.c, RPS: f.rps}
+	c := gp.Client{C: f.c, RPS: f.rps, Timeout: 10 * time.Second}
 	sum := c.Do(ctx, request, f.n)
 	sum.Fprint(out)
 
