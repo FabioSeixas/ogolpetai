@@ -26,9 +26,27 @@ func (c *Client) do(ctx context.Context, r *http.Request, n int) *Result {
 		p = throttle(p, time.Second/time.Duration(c.RPS*c.C))
 	}
 
-	var sum Result
-	for result := range split(p, c.C, Send) {
+	var (
+		sum    Result
+		client = c.client()
+	)
+	for result := range split(p, c.C, c.send(client)) {
 		sum.Merge(result)
 	}
 	return &sum
+}
+
+func (c *Client) send(client *http.Client) SendFunc {
+	return func(r *http.Request) *Result {
+		return Send(client, r)
+	}
+}
+
+func (c *Client) client() *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConnsPerHost: c.C,
+		},
+	}
+
 }

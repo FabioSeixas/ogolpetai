@@ -8,14 +8,14 @@ import (
 
 type SendFunc func(*http.Request) *Result
 
-func Send(r *http.Request) *Result {
+func Send(client *http.Client, r *http.Request) *Result {
 	t := time.Now()
 	var (
 		code  int
 		bytes int64
 	)
 
-	response, err := http.DefaultClient.Do(r)
+	response, err := client.Do(r)
 	if err == nil {
 		code = response.StatusCode
 		bytes, _ = io.Copy(io.Discard, response.Body)
