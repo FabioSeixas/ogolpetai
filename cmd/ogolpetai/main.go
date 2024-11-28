@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"runtime"
 	"strconv"
 	"strings"
@@ -347,7 +348,9 @@ func run(s *flag.FlagSet, args []string, out io.Writer) error {
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), f.timeout)
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
+	defer stop()
 
 	c := gp.Client{C: f.c, RPS: f.rps}
 	sum := c.Do(ctx, request, f.n)
