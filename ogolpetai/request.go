@@ -1,7 +1,7 @@
 package ogolpetai
 
 import (
-	"fmt"
+	"io"
 	"net/http"
 	"time"
 )
@@ -10,12 +10,23 @@ type SendFunc func(*http.Request) *Result
 
 func Send(r *http.Request) *Result {
 	t := time.Now()
-	fmt.Printf("request: %s\n", r.URL)
-	time.Sleep(100 * time.Millisecond)
+	var (
+		code  int
+		bytes int64
+	)
+
+	response, err := http.DefaultClient.Do(r)
+	if err == nil {
+		code = response.StatusCode
+		bytes, _ = io.Copy(io.Discard, response.Body)
+		_ = response.Body.Close()
+
+	}
 
 	return &Result{
-		Bytes:    10,
-		Status:   http.StatusOK,
+		Bytes:    bytes,
+		Status:   code,
+		Error:    err,
 		Duration: time.Since(t),
 	}
 }
