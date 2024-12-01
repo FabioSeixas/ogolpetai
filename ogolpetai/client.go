@@ -3,6 +3,7 @@ package ogolpetai
 import (
 	"context"
 	"net/http"
+	"runtime"
 	"time"
 )
 
@@ -24,7 +25,7 @@ func (c *Client) do(ctx context.Context, r *http.Request, n int) *Result {
 	})
 
 	if c.RPS > 0 {
-		p = throttle(p, time.Second/time.Duration(c.RPS*c.C))
+		p = throttle(p, time.Second/time.Duration(c.RPS*c.concurrency()))
 	}
 
 	var (
@@ -34,7 +35,7 @@ func (c *Client) do(ctx context.Context, r *http.Request, n int) *Result {
 
 	defer client.CloseIdleConnections()
 
-	for result := range split(p, c.C, c.send(client)) {
+	for result := range split(p, c.concurrency(), c.send(client)) {
 		sum.Merge(result)
 	}
 	return &sum
@@ -50,8 +51,15 @@ func (c *Client) client() *http.Client {
 	return &http.Client{
 		Timeout: c.Timeout,
 		Transport: &http.Transport{
-			MaxIdleConnsPerHost: c.C,
+			MaxIdleConnsPerHost: c.concurrency(),
 		},
 	}
 
+}
+
+func (c *Client) concurrency() int {
+	if c.C > 0 {
+		return c.C
+	}
+	return runtime.NumCPU()
 }
