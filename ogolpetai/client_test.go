@@ -8,26 +8,33 @@ import (
 	"testing"
 )
 
+func newTestServer(t *testing.T, fn http.HandlerFunc) *httptest.Server {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(fn))
+	t.Cleanup(server.Close)
+	return server
+}
+
+func newRequest(t *testing.T, server *httptest.Server) *http.Request {
+	t.Helper()
+	request, err := http.NewRequest(http.MethodGet, server.URL, http.NoBody)
+	if err != nil {
+		t.Fatalf("NewRequest err: %q; want nil", err)
+	}
+	return request
+}
+
 func TestClientDo(t *testing.T) {
 	// t.Parallel()
 
 	const wantHits, wantErrors = 10, 0
-	var gotHits atomic.Int64
-	// gotHits := 0
-
-	handler := func(_ http.ResponseWriter, _ *http.Request) {
-		gotHits.Add(1)
-		// gotHits++
-	}
-
-	server := httptest.NewServer(http.HandlerFunc(handler))
-	defer server.Close()
-
-	request, err := http.NewRequest(http.MethodGet, server.URL, http.NoBody)
-
-	if err != nil {
-		t.Fatalf("NewRequest err: %q; want nil", err)
-	}
+	var (
+		gotHits atomic.Int64
+		server  = newTestServer(t, func(w http.ResponseWriter, r *http.Request) {
+			gotHits.Add(1)
+		})
+		request = newRequest(t, server)
+	)
 
 	c := &Client{
 		C: 1,
