@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+type Option func(c *Client)
+
 type Client struct {
 	C       int           // Concurrency level
 	RPS     int           // RPS throttles the request per second
@@ -65,11 +67,35 @@ func (c *Client) concurrency() int {
 	return runtime.NumCPU()
 }
 
-func Do(ctx context.Context, url string, n int) (*Result, error) {
+func Concurrency(c int) Option {
+	return func(client *Client) {
+		client.C = c
+	}
+}
+
+func Timeout(t time.Duration) Option {
+	return func(client *Client) {
+		client.Timeout = t
+	}
+}
+
+func RPS(rps int) Option {
+	return func(client *Client) {
+		client.RPS = rps
+	}
+}
+
+func Do(ctx context.Context, url string, n int, opts ...Option) (*Result, error) {
 	r, err := http.NewRequest(http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("new http request: %w", err)
 	}
+
 	var c Client
+
+	for _, opt := range opts {
+		opt(&c)
+	}
+
 	return c.Do(ctx, r, n), nil
 }

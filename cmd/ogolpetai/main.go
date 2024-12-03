@@ -352,8 +352,12 @@ func run(s *flag.FlagSet, args []string, out io.Writer) error {
 	defer cancel()
 	defer stop()
 
-	c := gp.Client{C: f.c, RPS: f.rps, Timeout: 10 * time.Second}
-	sum := c.Do(ctx, request, f.n)
+	sum, err := gp.Do(ctx, request.URL.String(), f.n, gp.Concurrency(f.c), gp.Timeout(10*time.Second), gp.RPS(f.rps))
+
+	if err != nil {
+		return fmt.Errorf("\nError: %w\n", err)
+	}
+
 	sum.Fprint(out)
 
 	if err = ctx.Err(); errors.Is(err, context.DeadlineExceeded) {
