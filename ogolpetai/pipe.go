@@ -31,21 +31,29 @@ func produce(ctx context.Context, n int, fn func() req) <-chan req {
 	return out
 }
 
-func Throttle(in <-chan req, out chan<- req, delay time.Duration) {
+func Throttle(ctx context.Context, in <-chan req, out chan<- req, delay time.Duration) {
 	t := time.NewTicker(delay)
 	defer t.Stop()
 
-	for r := range in {
-		<-t.C
-		out <- r
+	for {
+		select {
+		case r, ok := <-in:
+			if !ok {
+				return
+			}
+			<-t.C
+			out <- r
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 
-func throttle(in <-chan req, delay time.Duration) <-chan req {
+func throttle(ctx context.Context, in <-chan req, delay time.Duration) <-chan req {
 	out := make(chan req)
 	go func() {
 		defer close(out)
-		Throttle(in, out, delay)
+		Throttle(ctx, in, out, delay)
 	}()
 	return out
 }

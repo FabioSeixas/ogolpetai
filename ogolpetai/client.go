@@ -28,7 +28,7 @@ func (c *Client) do(ctx context.Context, r *http.Request, n int) *Result {
 	})
 
 	if c.RPS > 0 {
-		p = throttle(p, time.Second/time.Duration(c.RPS*c.concurrency()))
+		p = throttle(ctx, p, time.Second/time.Duration(c.RPS*c.concurrency()))
 	}
 
 	var (
